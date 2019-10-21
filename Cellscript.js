@@ -1,6 +1,4 @@
-import { compile } from "$/cell/ts-tool";
-
-import { NES_W, NES_H } from '$/src/consts';
+import { NES_W, NES_H } from './src/consts';
 
 Object.assign(Sphere.Game, {
 	version: 2,
@@ -14,8 +12,7 @@ Object.assign(Sphere.Game, {
 	saveID: "SphereNES"
 });
 
-compile('@/scripts',	files('src/*.ts'));
-install('@/scripts',	files('src/*.js'));
-compile('@/lib',		files('lib/*.ts'));
+install('@/scripts',	files('src/*.js', true));
+install('@/lib',		files('lib/*.js', true));
 install('@/roms',		files('roms/*.nes'));
 install('@/',			files('icon.png'));
