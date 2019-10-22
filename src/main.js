@@ -1,29 +1,25 @@
 import { Thread } from 'sphere-runtime';
 import { M6502 } from "6502/M6502Main";
+import ScreenRenderer from "screenrenderer"
 
-
+const screen = Surface.Screen;
+const kb = Keyboard.Default;
 let cpu;
-
-
-let display = new Array(0x400);
-const palette = [
-	Color.of("#000000"), Color.of("#ffffff"), Color.of("#880000"), Color.of("#aaffee"),
-	Color.of("#cc44cc"), Color.of("#00cc55"), Color.of("#0000aa"), Color.of("#eeee77"),
-	Color.of("#dd8855"), Color.of("#664400"), Color.of("#ff7777"), Color.of("#333333"),
-	Color.of("#777777"), Color.of("#aaff66"), Color.of("#0088ff"), Color.of("#bbbbbb")
-];
+let renderer;
 
 export default class MyGame extends Thread {
 	constructor() {
 		super();
 		cpu = new M6502(60, 0x600);
+		renderer = new ScreenRenderer(screen, screen.width, screen.height, 32);
+		renderer.start();
 	}
 
 	on_update() {
-		if(Keyboard.Default.isPressed(Key.Escape)) Sphere.shutDown();
+		if(kb.isPressed(Key.Escape)) Sphere.shutDown();
 	}
 
 	on_render() {
-		
+
 	}
 }
