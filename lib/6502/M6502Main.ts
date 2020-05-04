@@ -5,11 +5,17 @@ export class M6502 {
 	memSize:number;
 	memory:Uint8Array;
 	clockSpeed:number;
+	/** Initial program counter */
 	startPC:number;
+	/** Program counter */
 	PC:number = 0x600;
+	/** Stack pointer */
 	SP:number = 0;
+	/** Accumulator */
 	A:number = 0;
+	/** X index register */
 	X:number = 0;
+	/** Y index register */
 	Y:number = 0;
 	statusRegister:number = 0;
 	romData?:Uint8Array;
@@ -23,26 +29,19 @@ export class M6502 {
 		this.clockSpeed = clockSpeed;
 		this.startPC = 0x600;
 		this.PC = this.startPC;
-		// this.SP = 0;
-		this.reset(M6502State.Running);
+		this.reset(M6502State.Stopped);
 	}
 
 	reset(state?:number) {
 		if(state !== undefined) this.state = state;
-		/** Program Counter */
 		this.PC = this.startPC;
-		/** Stack Pointer */
 		this.SP = 0;
-		/** Accumulator */
 		this.A = 0;
-		/** X index register */
 		this.X	= 0;
-		/** Y index register */
 		this.Y	= 0;
 		this.statusRegister = 0;
 		this.memory.fill(0x0);
 	}
-
 
 	readData(data:any, readSize?:number, readStart = 0) {
 		let arr:Uint8Array
@@ -53,7 +52,8 @@ export class M6502 {
 		}
 
 		if(readSize === undefined) readSize = arr.length;
-		this.romData = new Uint8Array(readSize);
+		if(this.romData === undefined)
+			this.romData = new Uint8Array(readSize);
 		let ri = 0;
 		for(let d = 0; d < readSize; d++) {
 			this.romData[ri++] = arr[d];
@@ -64,18 +64,11 @@ export class M6502 {
 		return (this.memory[this.PC++] & 0xFF);
 	}
 
-	executeInstruction(newPC = this.PC) {
+	executeAt(newPC:number) {
 		if(this.state == M6502State.Stopped || this.state == M6502State.Paused)
 			return;
 		this.PC = newPC;
-		let opcode = this.popByte();
-		switch(opcode) {
-			case M6502Opcode.BRK:
-				this.reset(M6502State.Stopped);
-				break;
-			default:
-				throw new OpcodeError(opcode, this.PC);
-		}
+		this.execute();
 	}
 
 	execute() {
@@ -93,7 +86,6 @@ export class M6502 {
 			
 			default:
 				throw new OpcodeError(opcode, this.PC);
-				break;
 		}
 	}
 }
@@ -107,28 +99,28 @@ export enum M6502State {
 
 export enum M6502StatusFlag {
 	/** set if the last operation caused a carry */
-	Carry			= 0,
+	Carry			= 1,
 	/** set if the last operation = 0 */
-	Zero			= 1,
+	Zero			= 2,
 	/** disables all interrupts except NMI */
-	InterruptDisbl	= 2,
+	InterruptDisbl	= 4,
 	/** not used by Ricoh 2A03 */
-	Decimal			= 4,
+	Decimal			= 8,
 	/** both this and Always1 are unused */
-	Breakpoint		= 8,
+	Breakpoint		= 16,
 	/** never used, always set to 1 */
-	Always1			= 16,
+	Always1			= 32,
 	/** sometimes referred to as V */
-	Overflow		= 32,
+	Overflow		= 64,
 	/** set if the last operation < 0 */
-	Negative		= 64
+	Negative		= 128
 }
 
-export const M6502Version = {
+export enum M6502Version {
 	/** MOS 6502 */
-	M6502: 1,
+	M6502 = 1,
 	/** Ricoh 2A03, used in the NES */
-	R2A03: 2,
+	R2A03 = 2,
 	/** WDC 65C02 */
-	W65C02: 4
+	W65C02 = 4
 };

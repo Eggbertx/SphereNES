@@ -1,15 +1,16 @@
 /*
  Opcode addressing mode key:
- (no addressing mode in name): Implied
- ABS: Absolute
- ABSX: Absolute, X
- ABSY: Absolute, Y
- IMM: Immediate
- INDX: (Indirect, X)
- INDY: (Indirect), Y
- ZP: Zero-page
- ZPX: Zero-page, X
- ZPY: Zero-page, Y
+ (no addressing mode in name): Implied, ex: TXA
+ ABS: Absolute, ex: LDA $0123
+ ABSX: Absolute indexed - X, ex: LDA $0123,X
+ ABSY: Absolute indexed - Y, ex: LDA $0123,Y
+ IMM: Immediate, ex: LDA #$01
+ IND: Indirect, ex: JMP ($1234)
+ INDX: Indexed indirect, ex: LDA ($00, X)
+ INDY: Indirect indexed, ex: LDA ($00), Y
+ ZP: $Zero-page
+ ZPX: $Zero-page, X
+ ZPY: $Zero-page, Y
  */
 
 
@@ -20,12 +21,15 @@
  * 
  * Addressing modes:
  * - Implied (1 byte): Doesn't take any parameters (CLC, TXA, DEX, etc)
- * - Immediate (2 bytes): Takes an 8-bit constant
+ * - Immediate (2 bytes): Uses an 8-bit constant as the value, ex: LDA #$02
  * - Absolute (2 bytes): 1 byte for the opcode and 2 for the address
  * - Zero-Page (2 bytes): 1 byte for the opcode and 1 byte for the address.
  *   Zero page is often used as 256 extra registers
  * - Relative (2 bytes): 1 byte for a jump instruction and 1 byte for the displacement
- * - Absolute Indexed: 
+ * - Indirect (3 bytes): Only used by JMP, like absolute but new address is taken from the value at $nn,$nn +1
+ * - Indexed Indirect: like indirect, but new address = ($nn + x, $nn + x + 1)
+ * - Indirect Indexed: like indirect, but new address = (value at $nn, $nn + 1) + y
+ * - Absolute Indexed: like absolute, but new address = $nnnn + X/Y
  */
 export enum M6502Opcode {
 	/** 0x6D: Add with carry - Absolute */
@@ -34,9 +38,9 @@ export enum M6502Opcode {
 	ADC_ZP = 0x65,
 	/** 0x69: Add with carry - Immediate */
 	ADC_IMM = 0x69,
-	/** 0x7D: Add with carry - Absolute, X */
+	/** 0x7D: Add with carry - AbsoluteIndexed, X */
 	ADC_ABSX = 0x7D,
-	/** 0x79: Add with carry - Absolute, Y */
+	/** 0x79: Add with carry - AbsoluteIndexed, Y */
 	ADC_ABSY = 0x79,
 	/** 0x61: Add with carry - (Indirect, X) */
 	ADC_INDX = 0x61,
@@ -50,9 +54,9 @@ export enum M6502Opcode {
 	AND_ZP = 0x25,
 	/** 0x29: Logical AND - Immediate */
 	AND_IMM = 0x29,
-	/** 0x3D: Logical AND - Absolute, X */
+	/** 0x3D: Logical AND - AbsoluteIndexed, X */
 	AND_ABSX = 0x3D,
-	/** 0x39: Logical AND - Absolute, Y */
+	/** 0x39: Logical AND - AbsoluteIndexed, Y */
 	AND_ABSY = 0x39,
 	/** 0x21: Logical AND - (Indirect, X) */
 	AND_INDX = 0x21,
@@ -66,7 +70,7 @@ export enum M6502Opcode {
 	ASL_ABS = 0x0E,
 	/** 0x06: Arithmetic shift left - Zero-Page */
 	ASL_ZP = 0x06,
-	/** 0x1E: Arithmetic shift left - Absolute, X */
+	/** 0x1E: Arithmetic shift left - AbsoluteIndexed, X */
 	ASL_ABSX = 0x1E,
 	/** 0x16: Arithmetic shift left - Zero-Page, X */
 	ASL_ZPX = 0x16,
@@ -106,9 +110,9 @@ export enum M6502Opcode {
 	CMP_ZP = 0xC5,
 	/** 0xC9: Compare to accumulator - Immediate */
 	CMP_IMM = 0xC9,
-	/** 0xD0: Compare to accumulator - Absolute, X */
+	/** 0xD0: Compare to accumulator - AbsoluteIndexed, X */
 	CMP_ABSX = 0xD0,
-	/** 0xD9: Compare to accumulator - Absolute, Y */
+	/** 0xD9: Compare to accumulator - AbsoluteIndexed, Y */
 	CMP_ABSY = 0xD9,
 	/** 0xC1: Compare to accumulator - (Indirect, X) */
 	CMP_INDX = 0xC1,
@@ -132,7 +136,7 @@ export enum M6502Opcode {
 	DEC_ABS = 0xCE,
 	/** 0xC6: Decrement specified address - Zero-Page */
 	DEC_ZP = 0xC6,
-	/** 0xDE: Decrement specified address - Absolute, X */
+	/** 0xDE: Decrement specified address - AbsoluteIndexed, X */
 	DEC_ABSX = 0xDE,
 	/** 0xDC: Decrement specified address - Zero-Page, X */
 	DEC_ZPX = 0xDC,
@@ -146,9 +150,9 @@ export enum M6502Opcode {
 	EOR_ZP = 0x45,
 	/** 0x49: Exclusive OR with accumulator - Immediate */
 	EOR_IMM = 0x49,
-	/** 0x5D: Exclusive OR with accumulator - Absolute, X */
+	/** 0x5D: Exclusive OR with accumulator - AbsoluteIndexed, X */
 	EOR_ABSX = 0x5D,
-	/** 0x59: Exclusive OR with accumulator - Absolute, Y */
+	/** 0x59: Exclusive OR with accumulator - AbsoluteIndexed, Y */
 	EOR_ABSY = 0x59,
 	/** 0x41: Exclusive OR with accumulator - (Indirect, X) */
 	EOR_INDX = 0x41,
@@ -160,7 +164,7 @@ export enum M6502Opcode {
 	INC_ABS = 0xEE,
 	/** 0xE6: Increment memory - Zero-Page */
 	INC_ZP = 0xE6,
-	/** 0xFE: Increment memory - Absolute, X */
+	/** 0xFE: Increment memory - AbsoluteIndexed, X */
 	INC_ABSX = 0xFE,
 	/** 0xF6: Increment memory - Zero-Page, X */
 	INC_ZPX = 0xF6,
@@ -180,9 +184,9 @@ export enum M6502Opcode {
 	LDA_ZP = 0xA5,
 	/** 0xA9: Load accumulator - Immediate */
 	LDA_IMM = 0xA9,
-	/** 0xBD: Load accumulator - Absolute, X */
+	/** 0xBD: Load accumulator - AbsoluteIndexed, X */
 	LDA_ABSX = 0xBD,
-	/** 0xB9: Load accumulator - Absolute, Y */
+	/** 0xB9: Load accumulator - AbsoluteIndexed, Y */
 	LDA_ABSY = 0xB9,
 	/** 0xA1: Load accumulator - (Indirect, X) */
 	LDA_INDX = 0xA1,
@@ -196,7 +200,7 @@ export enum M6502Opcode {
 	LDX_ZP = 0xA6,
 	/** 0xA2: Load X - Immediate */
 	LDX_IMM = 0xA2,
-	/** 0xBE: Load X - Absolute, Y */
+	/** 0xBE: Load X - AbsoluteIndexed, Y */
 	LDX_ABSY = 0xBE,
 	/** 0xB6: Load X - Zero-Page, Y */
 	LDX_ZPY = 0xB6,
@@ -206,7 +210,7 @@ export enum M6502Opcode {
 	LDY_ZP = 0xA4,
 	/** 0xA0: Load Y - Immediate */
 	LDY_IMM = 0xA0,
-	/** 0xBC: Load Y - Absolute, X */
+	/** 0xBC: Load Y - AbsoluteIndexed, X */
 	LDY_ABSX = 0xBC,
 	/** 0xB4: Load Y - Zero-Page, X */
 	LDY_ZPX = 0xB4,
@@ -216,7 +220,7 @@ export enum M6502Opcode {
 	LSR_ABS = 0x4E,
 	/** 0x46: Logical shift right - Zero-Page */
 	LSR_ZP = 0x46,
-	/** 0x5E: Logical shift right - Absolute, X */
+	/** 0x5E: Logical shift right - AbsoluteIndexed, X */
 	LSR_ABSX = 0x5E,
 	/** 0x56: Logical shift right - Zero-Page, X */
 	LSR_ZPX = 0x56,
@@ -228,9 +232,9 @@ export enum M6502Opcode {
 	ORA_ZP = 0x05,
 	/** 0x09: Inclusive OR with accumulator - Immediate */
 	ORA_IMM = 0x09,
-	/** 0x1D: Inclusive OR with accumulator - Absolute, X */
+	/** 0x1D: Inclusive OR with accumulator - AbsoluteIndexed, X */
 	ORA_ABSX = 0x1D,
-	/** 0x19: Inclusive OR with accumulator - Absolute, Y */
+	/** 0x19: Inclusive OR with accumulator - AbsoluteIndexed, Y */
 	ORA_ABSY = 0x19,
 	/** 0x01: Inclusive OR with accumulator - (Indirect, X) */
 	ORA_INDX = 0x01,
@@ -252,7 +256,7 @@ export enum M6502Opcode {
 	ROL_ABS = 0x2E,
 	/** 0x26: Rotate left one bit - Zero-Page */
 	ROL_ZP = 0x26,
-	/** 0x3E: Rotate left one bit - Absolute, X */
+	/** 0x3E: Rotate left one bit - AbsoluteIndexed, X */
 	ROL_ABSX = 0x3E,
 	/** 0x36: Rotate left one bit - Zero-Page, X */
 	ROL_ZPX = 0x36,
@@ -262,7 +266,7 @@ export enum M6502Opcode {
 	ROR_ABS = 0x6E,
 	/** 0x66: Rotate right one bit - Zero-Page */
 	ROR_ZP = 0x66,
-	/** 0x7E: Rotate right one bit - Absolute, X */
+	/** 0x7E: Rotate right one bit - AbsoluteIndexed, X */
 	ROR_ABSX = 0x7E,
 	/** 0x76: Rotate right one bit - Zero-Page, X */
 	ROR_ZPX = 0x76,
@@ -276,9 +280,9 @@ export enum M6502Opcode {
 	SBC_ZP = 0xE5,
 	/** 0xE9: Subtract with carry - Immediate */
 	SBC_IMM = 0xE9,
-	/** 0xFD: Subtract with carry - Absolute, X */
+	/** 0xFD: Subtract with carry - AbsoluteIndexed, X */
 	SBC_ABSX = 0xFD,
-	/** 0xF9: Subtract with carry - Absolute, Y */
+	/** 0xF9: Subtract with carry - AbsoluteIndexed, Y */
 	SBC_ABSY = 0xF9,
 	/** 0xE1: Subtract with carry - (Indirect, X) */
 	SBC_INDX = 0xE1,
@@ -296,9 +300,9 @@ export enum M6502Opcode {
 	STA_ABS = 0x8D,
 	/** 0x85: Store accumulator in memory - Zero-Page */
 	STA_ZP = 0x85,
-	/** 0x9D: Store accumulator in memory - Absolute, X */
+	/** 0x9D: Store accumulator in memory - AbsoluteIndexed, X */
 	STA_ABSX = 0x9D,
-	/** 0x99: Store accumulator in memory - Absolute, Y */
+	/** 0x99: Store accumulator in memory - AbsoluteIndexed, Y */
 	STA_ABSY = 0x99,
 	/** 0x81: Store accumulator in memory - (Indirect, X) */
 	STA_INDX = 0x81,

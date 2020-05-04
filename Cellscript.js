@@ -17,6 +17,6 @@ Object.assign(Sphere.Game, {
 
 tsc('@/', '$/tsconfig.json');
 install('@/fonts',	files('fonts/*.rfn'));
-install('@/roms',	files('roms/*'));
+install('@/roms',	files('roms/*', true));
 install('@/',		files('icon.png'));
 

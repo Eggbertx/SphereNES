@@ -2,7 +2,8 @@ import { Thread, Console } from 'sphere-runtime';
 import { M6502, M6502Version } from "6502/M6502";
 import { M6502asmROMReader } from 'romreader';
 import ScreenRenderer from "screenrenderer";
-import { NES_W, NES_H, PIXEL_SCALE, PPU_HZ } from "./consts";
+import { NES_W, NES_H, PIXEL_SCALE, CPU_HZ } from "./consts";
+import { NESROM } from './nesrom';
 
 const kb = Keyboard.Default;
 const screen = Surface.Screen;
@@ -17,10 +18,6 @@ export const palette = [
 	Color.of("#777777"), Color.of("#aaff66"), Color.of("#0088ff"), Color.of("#bbbbbb")
 ];
 
-function message(...str:any) {
-	console.log(`Fatal error: ${str.join(",")}`);
-	console.visible = true;
-}
 
 export default class SphereNES extends Thread {
 	romPath:string;
@@ -30,15 +27,20 @@ export default class SphereNES extends Thread {
 		super();
 		Sphere.frameRate = 150;
 		this.romPath = "";
-		this.cpu = new M6502(PPU_HZ, 0x600, M6502Version.M6502);
+		this.cpu = new M6502(CPU_HZ, 0x600, M6502Version.R2A03);
 		this.renderer = new ScreenRenderer(screen, NES_W, NES_H, PIXEL_SCALE);
 		this.renderer.start();
 	}
-	start() {
-		this.romPath = (arguments.length > 0)?arguments[0]:"";
-		let rr = new M6502asmROMReader(this.romPath);
-		rr.read(this.cpu);
-		return super.start();
+	async start() {
+		return super.start().then(() => {
+			if(arguments.length == 0) {
+				Sphere.abort("Usage: minisphere|spherun <rompath>");
+			}
+			this.romPath = arguments[0];
+			let rom = new NESROM(this.romPath);
+			rom.read();
+			rom.logROMinfo();
+		});
 	}
 	on_update() {
 		if(kb.isPressed(Key.Escape)) Sphere.shutDown();

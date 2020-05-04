@@ -9,7 +9,6 @@ export abstract class ROMReader {
 		this.stream = new DataStream(path, FileOp.Read);
 	}
 	abstract read(cpu?:M6502):void;
-	abstract validate():boolean;
 	abstract logROMinfo():void;
 }
 
@@ -23,7 +22,7 @@ export class M6502asmROMReader extends ROMReader {
 	}
 	read(cpu:M6502) {
 		this.bytes = <Uint8Array>this.stream.read(this.stream.fileSize);
-		Sphere.abort(this.bytes.length);
+		cpu.romData = this.bytes;
 	}
 	validate():boolean {
 		return true;
