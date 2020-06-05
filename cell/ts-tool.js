@@ -30,69 +30,112 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 **/
 
-const ts = require('$/cell/typescript.js');
+import { from } from 'cell-runtime';
 
-const compilerHost = {
-	directoryExists: FS.directoryExists,
-	fileExists: FS.fileExists,
-	getCanonicalFileName: FS.fullPath,
-	getCurrentDirectory() {
-		return "$/";
-	},
-	getDefaultLibFileName(options) {
-		return "$/types/lib.d.ts";
-	},
-	getNewLine() {
-		return "\r\n";
-	},
-	getSourceFile(fileName, target) {
-		const sourceText = FS.readFile(fileName);
-		return ts.createSourceFile(fileName, sourceText, target);
-	},
-	readFile: FS.readFile,
-	useCaseSensitiveFileNames() {
-		return true;
-	},
-	writeFile: FS.writeFile,
-};
+const TS = require('$/node_modules/typescript/lib/typescript.js');
 
-const tsTool = new Tool((outFileName, inFileNames) => {
-	const program = ts.createProgram(inFileNames, {
-		target: ts.ScriptTarget.ESNext,
-		module: ts.ModuleKind.ESNext,
-		lib: [ 'lib.esnext.d.ts', 'lib.sphere.d.ts' ],
-		outDir: FS.directoryOf(outFileName),
-		isolatedModules: true,
-		strict: true,
-	}, compilerHost);
-	program.emit();
-	for (const diag of ts.getPreEmitDiagnostics(program)) {
-		const message = ts.flattenDiagnosticMessageText(diag.messageText);
-		const fileName = FS.fullPath(diag.file.fileName);
-		const { line } = diag.file.getLineAndCharacterOfPosition(diag.start);
-		error(`[${fileName}:${line + 1}] ${message}`);
-	}
-}, "transpiling");
-
-export
-function compile(dirName, sources)
+class CellCompilerHost
 {
-	return stageTarget(dirName, sources);
+	directoryExists(directoryName)
+	{
+		return FS.directoryExists(directoryName);
+	}
+
+	fileExists(fileName)
+	{
+		return FS.fileExists(fileName);
+	}
+
+	getCanonicalFileName(pathName)
+	{
+		// TypeScript doesn't understand SphereFS paths and thinks they're relative.  this means it
+		// sometimes gives us a SphereFS prefix by itself.  if that happens, we need to add a slash
+		// to ensure it normalizes properly.
+		if (pathName === '$' || pathName === '@' || pathName === '#')
+			pathName += '/';
+
+		return FS.fullPath(pathName);
+	}
+
+	getCurrentDirectory()
+	{
+		return "";
+	}
+
+	getDefaultLibFileName(options)
+	{
+		return "$/node_modules/typescript/lib/lib.d.ts";
+	}
+
+	getNewLine()
+	{
+		return "\n";
+	}
+
+	getSourceFile(fileName, target)
+	{
+		const sourceText = FS.readFile(fileName);
+		return TS.createSourceFile(fileName, sourceText, target);
+	}
+
+	readDirectory(directoryName, extensions, excludePaths, includePaths, depth)
+	{
+		return from(new DirectoryStream(directoryName, { recursive: true }))
+			.where(it => !it.fullPath.includes(`node_modules/`))
+			.where(it => !it.isDirectory)
+			.where(it => extensions.includes(FS.extensionOf(it.fullPath)))
+			.where(it => !FS.match(it.fullPath, excludePaths))
+			.where(it => FS.match(it.fullPath, includePaths))
+			.select(it => it.fullPath)
+			.toArray();
+	}
+
+	readFile(fileName)
+	{
+		return FS.readFile(fileName);
+	}
+
+	useCaseSensitiveFileNames()
+	{
+		return true;
+	}
+
+	writeFile(fileName, content)
+	{
+		FS.createDirectory(FS.directoryOf(fileName));
+		FS.writeFile(fileName, content);
+	}
 }
 
-function stageTarget(dirName, sources)
+const tsTool = new Tool((outFileName, inFileNames) => {
+	const compilerHost = new CellCompilerHost();
+
+	const basePath = FS.directoryOf(inFileNames[0]);
+	const configFile = TS.readConfigFile(inFileNames[0], FS.readFile);
+	const jobInfo = TS.parseJsonConfigFileContent(configFile.config, compilerHost, basePath);
+	jobInfo.options.noEmit = false;
+	jobInfo.options.outDir = outFileName;
+	jobInfo.options.rootDir = '$/';
+
+	const program = TS.createProgram(jobInfo.fileNames, jobInfo.options, compilerHost);
+    program.emit();
+    const diags = TS.getPreEmitDiagnostics(program);
+    for (const diag of diags) {
+		let message = TS.flattenDiagnosticMessageText(diag.messageText, '');
+		if (diag.file !== undefined) {
+			const fileName = FS.fullPath(diag.file.fileName);
+			const { line } = diag.file.getLineAndCharacterOfPosition(diag.start);
+			message = `[${fileName}:${line + 1}] ${message}`;
+		}
+		if (jobInfo.options.noEmitOnError)
+			error(message);
+		else
+			warn(message);
+    }
+}, `compiling TypeScript (${TS.version})`);
+
+export
+function tsc(outputDirName, fileName)
 {
-	const targets = [];
-	FS.createDirectory(dirName);
-	for (let i = 0; i < sources.length; ++i) {
-		let fileName = FS.fullPath(dirName + '/' + sources[i].name);
-		if (fileName.endsWith('.ts') || fileName.endsWith('.mjs') || fileName.endsWith('.js'))
-			fileName = fileName.substring(0, fileName.lastIndexOf('.'));
-		fileName += '.js';
-		const target = tsTool.stage(fileName, [ sources[i] ], {
-			name: sources[i].name,
-		});
-		targets.push(target);
-	}
-	return targets;
+	return tsTool.stage(`${outputDirName}/`, files(fileName));
 }

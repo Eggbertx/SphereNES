@@ -1,21 +1,22 @@
-import { compile } from "$/cell/ts-tool";
+// import { compile } from '$/cell/ts-tool';
+import { tsc } from './cell/ts-tool';
 
-import { NES_W, NES_H } from '$/src/consts';
+import { NES_W, NES_H, PIXEL_SCALE } from './scripts/consts';
 
 Object.assign(Sphere.Game, {
 	version: 2,
-	apiLevel: 1,
+	apiLevel: 2,
 
 	name: "SphereNES",
 	author: "Eggbertx",
 	summary: "An attempt at a NES emulator",
-	resolution: `${NES_W*2}x${NES_H*2}`,
+	resolution: `${NES_W*PIXEL_SCALE}x${NES_H*PIXEL_SCALE}`,
 	main: "@/scripts/main.js",
-	saveID: "SphereNES"
+	saveID: "Eggbertx.SphereNES"
 });
 
-compile('@/scripts',	files('src/*.ts'));
-install('@/scripts',	files('src/*.js'));
-compile('@/lib',		files('lib/*.ts'));
-install('@/roms',		files('roms/*.nes'));
-install('@/',			files('icon.png'));
+tsc('@/', '$/tsconfig.json');
+install('@/fonts',	files('fonts/*.rfn'));
+install('@/roms',	files('roms/*', true));
+install('@/',		files('icon.png'));
+

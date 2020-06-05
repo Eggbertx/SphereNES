@@ -1,0 +1,8 @@
+[.ssproj]
+author=Eggbertx
+compiler=Cell
+description=An attempt at a NES emulator
+mainScript=@/scripts/main.js
+name=SphereNES
+screenHeight=-1
+screenWidth=-1
