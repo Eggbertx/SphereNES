@@ -19,10 +19,12 @@ export class M6502 {
 	Y:number = 0;
 	statusRegister:number = 0;
 	romData?:Uint8Array;
-	constructor(clockSpeed:number, memSize = 0x600, version = M6502Version.M6502) {
-		Object.defineProperty(this, "version", {
-			get: () => version
-		});
+	protected _version:M6502Version;
+	public get version():M6502Version {
+		return this._version;
+	}
+	constructor(clockSpeed:number, memSize = 0x800, version = M6502Version.M6502) {
+		this._version = version;
 		this.state = M6502State.Stopped;
 		this.memSize = memSize;
 		this.memory = new Uint8Array(this.memSize);
@@ -60,8 +62,21 @@ export class M6502 {
 		}
 	}
 
-	popByte() {
+	popByte():number {
 		return (this.memory[this.PC++] & 0xFF);
+	}
+
+	pushByte(byte:number) {
+		this.memory[this.PC++] = byte & 0xFF;
+	}
+
+	popWord():number {
+		return this.popByte() + (this.popByte() << 8);
+	}
+
+	pushWord(byte:number) {
+		this.pushByte(byte & 0xFF);
+		this.pushByte((byte >> 8) & 0xFF);
 	}
 
 	executeAt(newPC:number) {

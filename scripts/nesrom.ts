@@ -1,5 +1,6 @@
 import { DataStream } from 'sphere-runtime';
 import { ROMReader, ROMFormatError } from 'romreader';
+import { console } from "./util"
 
 const headerStruct = {
 	signature: { type: 'fstring', length: 4 },
@@ -121,15 +122,15 @@ export class NESROM extends ROMReader {
 	}
 
 	logROMinfo() {
-		SSj.log(`ROM path: ${this.path}`);
-		SSj.log(`PRG size: ${this.prgSize} 16 KB PRG ROM banks (${this.prgSize * 16}KB)`);
-		SSj.log(`CHR size: ${this.chrSize} 8 KB CHR VROM banks (${this.chrSize * 8}KB)`);
-		SSj.log(`Mirroring: ${Mirroring[this.mirroring]}`);
-		SSj.log(`Battery (for save data): ${this.batteryRAM}`);
-		SSj.log(`ROM has 512 byte trainer: ${this.hasTrainer}`);
-		SSj.log(`ROM has 4-screen VRAM layout: ${this.fourScreenVRAM}`);
-		SSj.log(`ROM mapper type: ${MapperType[this.mapperType]}`);
-		SSj.log(`Number of 8 KB RAM banks: ${this.numRAMBanks}`);
-		SSj.log(`Cartridge type: ${CartridgeType[this.cartridgeType]}`);
+		console.log(`ROM path: ${this.path}`);
+		console.log(`PRG size: ${this.prgSize} 16 KB PRG ROM banks (${this.prgSize * 16}KB)`);
+		console.log(`CHR size: ${this.chrSize} 8 KB CHR VROM banks (${this.chrSize * 8}KB)`);
+		console.log(`Mirroring: ${Mirroring[this.mirroring]}`);
+		console.log(`Battery (for save data): ${this.batteryRAM}`);
+		console.log(`ROM has 512 byte trainer: ${this.hasTrainer}`);
+		console.log(`ROM has 4-screen VRAM layout: ${this.fourScreenVRAM}`);
+		console.log(`ROM mapper type: ${MapperType[this.mapperType]}`);
+		console.log(`Number of 8 KB RAM banks: ${this.numRAMBanks}`);
+		console.log(`Cartridge type: ${CartridgeType[this.cartridgeType]}`);
 	}
 }

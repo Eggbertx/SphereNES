@@ -1,15 +1,15 @@
-import { Thread, Console } from 'sphere-runtime';
+import { Thread } from 'sphere-runtime';
 import { M6502, M6502Version } from "6502/M6502";
 import { M6502asmROMReader } from 'romreader';
 import ScreenRenderer from "screenrenderer";
 import { NES_W, NES_H, PIXEL_SCALE, CPU_HZ } from "./consts";
 import { NESROM } from './nesrom';
+import { initConsole } from "./util";
 
 const kb = Keyboard.Default;
 const screen = Surface.Screen;
 
 const font = new Font("fonts/emulogic-12pt.rfn");
-const console = new Console({ logFileName: "~/console.log" });
 
 export const palette = [
 	Color.of("#000000"), Color.of("#ffffff"), Color.of("#880000"), Color.of("#aaffee"),
@@ -27,7 +27,7 @@ export default class SphereNES extends Thread {
 		super();
 		Sphere.frameRate = 150;
 		this.romPath = "";
-		this.cpu = new M6502(CPU_HZ, 0x600, M6502Version.R2A03);
+		this.cpu = new M6502(CPU_HZ, 0x600, M6502Version.M6502);
 		this.renderer = new ScreenRenderer(screen, NES_W, NES_H, PIXEL_SCALE);
 		this.renderer.start();
 	}
@@ -36,6 +36,7 @@ export default class SphereNES extends Thread {
 			if(arguments.length == 0) {
 				Sphere.abort("Usage: minisphere|spherun <rompath>");
 			}
+			initConsole();
 			this.romPath = arguments[0];
 			let rom = new NESROM(this.romPath);
 			rom.read();
