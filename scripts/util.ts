@@ -11,3 +11,6 @@ export function initConsole() {
 	console = new Console({ logFileName: "~/console.log" });
 }
 
+export function logWrapper(msg:string) {
+	console.log(msg);
+}

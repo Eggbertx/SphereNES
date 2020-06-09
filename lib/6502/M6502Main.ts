@@ -19,11 +19,12 @@ export class M6502 {
 	Y:number = 0;
 	statusRegister:number = 0;
 	romData?:Uint8Array;
+	log:(msg:string)=>any;
 	protected _version:M6502Version;
 	public get version():M6502Version {
 		return this._version;
 	}
-	constructor(clockSpeed:number, memSize = 0x800, version = M6502Version.M6502) {
+	constructor(clockSpeed:number, memSize = 0x800, version = M6502Version.M6502, loggingFunction?:(msg:string)=>any) {
 		this._version = version;
 		this.state = M6502State.Stopped;
 		this.memSize = memSize;
@@ -31,6 +32,9 @@ export class M6502 {
 		this.clockSpeed = clockSpeed;
 		this.startPC = 0x600;
 		this.PC = this.startPC;
+		if(!loggingFunction)
+			loggingFunction = (msg:string)=>{};
+		this.log = loggingFunction;
 		this.reset(M6502State.Stopped);
 	}
 
@@ -45,7 +49,7 @@ export class M6502 {
 		this.memory.fill(0x0);
 	}
 
-	readData(data:any, readSize?:number, readStart = 0) {
+	readData(data:ArrayLike<any>, readSize?:number, readStart = 0) {
 		let arr:Uint8Array
 		if(typeof data === "string") {
 			arr = new Uint8Array(data.split('').map(char => char.charCodeAt(0)));
@@ -59,6 +63,7 @@ export class M6502 {
 		let ri = 0;
 		for(let d = 0; d < readSize; d++) {
 			this.romData[ri++] = arr[d];
+			this.memory
 		}
 	}
 
@@ -93,6 +98,7 @@ export class M6502 {
 			return;
 
 		let opcode = this.popByte();
+		this.log(`Opcode: ${opcode}`);
 		switch(opcode) {
 			case M6502Opcode.ADC_ABS:
 				
@@ -101,6 +107,11 @@ export class M6502 {
 			
 			default:
 				throw new OpcodeError(opcode, this.PC);
+		}
+	}
+	run() {
+		while(this.state == M6502State.Running) {
+			this.execute();
 		}
 	}
 }

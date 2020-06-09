@@ -1,4 +1,3 @@
-// import { compile } from '$/cell/ts-tool';
 import { tsc } from './cell/ts-tool';
 
 import { NES_W, NES_H, PIXEL_SCALE } from './scripts/consts';
@@ -19,4 +18,3 @@ tsc('@/', '$/tsconfig.json');
 install('@/fonts',	files('fonts/*.rfn'));
 install('@/roms',	files('roms/*', true));
 install('@/',		files('icon.png'));
-

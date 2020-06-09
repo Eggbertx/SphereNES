@@ -72,3 +72,9 @@ export const NESPalette:NESColor[] = [
 	{red:0, green:0, blue:0},
 	{red:0, green:0, blue:0}
 ];
+
+export enum NESVideoSystem {
+	NTSC,
+	PAL,
+	Dual
+}
