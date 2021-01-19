@@ -47,23 +47,22 @@ export class M6502 {
 		this.Y	= 0;
 		this.statusRegister = 0;
 		this.memory.fill(0x0);
+		if(this.romData)
+			this.readData(this.romData);
 	}
 
-	readData(data:ArrayLike<any>, readSize?:number, readStart = 0) {
+	readData(data:ArrayLike<any>, readSize = 0, readStart = 0, readTo = 0x600) {
 		let arr:Uint8Array
 		if(typeof data === "string") {
 			arr = new Uint8Array(data.split('').map(char => char.charCodeAt(0)));
 		} else {
 			arr = new Uint8Array(data);
 		}
-
-		if(readSize === undefined) readSize = arr.length;
-		if(this.romData === undefined)
-			this.romData = new Uint8Array(readSize);
-		let ri = 0;
+		this.romData = arr;
+		if(readSize < 1) readSize = arr.length;
+		
 		for(let d = 0; d < readSize; d++) {
-			this.romData[ri++] = arr[d];
-			this.memory
+			this.memory[readTo + d] = arr[readStart + d];
 		}
 	}
 
@@ -97,21 +96,25 @@ export class M6502 {
 		if(this.state == M6502State.Paused)
 			return;
 
+		this.log(`PC: ${this.PC.toString(16)}`);
 		let opcode = this.popByte();
-		this.log(`Opcode: ${opcode}`);
+		this.log(`Opcode: ${M6502Opcode[opcode]}, ${opcode.toString(16)}`);
 		switch(opcode) {
-			case M6502Opcode.ADC_ABS:
-				
+			case M6502Opcode.BRK:
+				this.state = M6502State.Stopped;
 				break;
-			
-			
+			case M6502Opcode.NOP:
+				break;
+			case M6502Opcode.LDA_IMM:
+				this.A = this.popByte();
+				this.log(`Accumlator changed to ${this.A.toString(16)}`);
+				break;
+			case M6502Opcode.STA_ABS:
+				let addr = this.popWord();
+				this.memory[addr] = this.A;
+				break;
 			default:
 				throw new OpcodeError(opcode, this.PC);
-		}
-	}
-	run() {
-		while(this.state == M6502State.Running) {
-			this.execute();
 		}
 	}
 }

@@ -2,3 +2,4 @@ dist/
 node_modules/
 package-lock.json
 roms/nonfree/**/*
+6502assembler/6502assembler*

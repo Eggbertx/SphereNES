@@ -340,7 +340,7 @@ export enum M6502Opcode {
 export class OpcodeError extends Error {
 	opcode:number;
 	PC:number;
-	constructor(opcode:number, programCounter = 0, text = "") {
+	constructor(opcode:number, programCounter = 0, text = `Invalid opcode at $${programCounter.toString(16)}: $${opcode.toString(16)}`) {
 		super(text);
 		this.opcode = opcode;
 		this.PC = programCounter;

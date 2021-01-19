@@ -16,10 +16,25 @@ const headerStruct = {
 
 export class SphereNES extends NESROM {
 	stream:DataStream;
-	
+	private updateToken:JobToken;
+	private renderToken:JobToken;
 	constructor(path:string) {
 		super(path, logWrapper);
 		this.stream = new DataStream(path, FileOp.Read);
+		this.updateToken = Dispatch.onUpdate(this.update);
+		this.renderToken = Dispatch.onRender(this.render);
+	}
+
+	private update() {
+
+	}
+
+	private render() {
+
+	}
+
+	halt() {
+
 	}
 
 	read() {

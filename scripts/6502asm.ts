@@ -20,8 +20,8 @@ export class M6502asmROM extends ROMReader {
 	}
 
 	read(cpu:M6502) {
-		this.bytes = <Uint8Array>this.stream.read(this.stream.fileSize);
-		cpu.romData = this.bytes;
+		this.bytes = new Uint8Array(this.stream.read(this.stream.fileSize));
+		cpu.readData(this.bytes, this.bytes.byteLength, 0, 0x600);
 	}
 
 	logROMinfo() {
