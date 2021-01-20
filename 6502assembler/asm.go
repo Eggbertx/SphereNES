@@ -1,14 +1,22 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
 )
 
+const (
+	startPC = 0x0600
+)
+
 var (
-	asmLineRE = regexp.MustCompile(`^(\S+) *(.*)`)
+	asmLineRE     = regexp.MustCompile(`^(\S+) *(.*)`)
+	trimCommentRE = regexp.MustCompile(`(\s*;.*)|(\n\s*)`)
+	extraSpaceRE  = regexp.MustCompile(`\s\s+`)
+	errNoCode     = errors.New("no code to run")
 )
 
 type asm struct {
@@ -140,28 +148,33 @@ func (a *asm) strToBytes(line string) (ba []byte) {
 	return
 }
 
+// this removes comments and unnecessary extra whitespace
+func (a *asm) cleanCode(str string) string {
+	// trim space and remove all comments and extra newlines
+	str = strings.Replace(
+		trimCommentRE.ReplaceAllString(str, "\n"),
+		"\n\n", "\n", -1)
+
+	return strings.TrimSpace(extraSpaceRE.ReplaceAllString(str, " "))
+}
+
 func (a *asm) assemble(printBytes bool) error {
 	ba, err := ioutil.ReadFile(a.filename)
 	if err != nil {
 		return err
 	}
-	lines := strings.Split(string(ba), "\n")
+
+	asmStr := a.cleanCode(string(ba))
+	if asmStr == "" {
+		return errNoCode
+	}
+
+	lines := strings.Split(asmStr, "\n")
 	for l, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || line[0] == ';' {
-			continue
-		}
-
-		commentI := strings.Index(line, ";")
-		if commentI > -1 {
-			line = line[:commentI]
-		}
-
 		if ba = a.strToBytes(line); len(ba) == 0 {
 			return fmt.Errorf("Invalid syntax at line %d: %s", l+1, line)
 		}
 		a.bytes = append(a.bytes, ba...)
-		// fmt.Println(l, line)
 	}
 	return err
 }
